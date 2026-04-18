@@ -1,0 +1,33 @@
+# config/config.yaml
+# -------------------
+# Central configuration for the Real-Time Banking Transaction Pipeline.
+# Override values via environment variables in production.
+
+kafka:
+  broker: "localhost:9092"
+  topic:  "txn_events"
+  group_id: "banking-pipeline-consumer-group"
+  partitions: 3
+  replication_factor: 1
+
+producer:
+  tps: 100              # transactions per second
+  run_duration: -1      # seconds; -1 = run indefinitely
+
+spark:
+  app_name: "RealtimeBankingPipeline"
+  checkpoint_path: "/tmp/spark-checkpoints/banking-pipeline"
+  trigger_interval: "30 seconds"
+  shuffle_partitions: 4
+  watermark_delay: "5 minutes"
+
+s3:
+  bucket: "your-s3-bucket-name"
+  raw_prefix:     "banking/raw"
+  curated_prefix: "banking/curated"
+  dq_prefix:      "banking/dq_reports"
+
+dq:
+  null_rate_threshold: 0.02     # 2% max null rate for critical fields
+  anomaly_zscore_cutoff: 4.0    # Z-score threshold for amount anomaly flagging
+  min_records_for_stats: 30     # minimum records required to run anomaly check

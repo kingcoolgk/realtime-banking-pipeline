@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.env
+venv/
+.venv/
+
+# Spark
+spark-warehouse/
+derby.log
+metastore_db/
+/tmp/
+
+# Airflow
+airflow.db
+airflow.cfg
+logs/
+airflow/logs/
+
+# AWS credentials — NEVER commit these
+.aws/
+*.pem
+*.key
+secrets.yaml
+credentials
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
