@@ -43,7 +43,27 @@ Built as a personal portfolio project to demonstrate skills aligned with modern 
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+## Live Demo Screenshots
 
+### 1. Kafka Topic — 6,694 Real-Time Transactions Published
+![Kafka Topics](docs/screenshots/03-kafka-topics.png)
+> txn_events topic with 3 partitions, 6,694 messages, 2MB data — 
+> producer publishing ~100 credit card transactions/sec
+
+### 2. Real-Time Message Stream — All 3 Partitions Active
+![Kafka Messages](docs/screenshots/02-kafka-messages.png)
+> Individual transaction events distributed across 3 partitions 
+> with millisecond timestamps
+
+### 3. Transaction Event Detail — Full JSON Payload
+![Transaction Detail](docs/screenshots/01-transaction-detail.png)
+> Sample credit card transaction: RUPAY card, ₹426.31, 
+> Ola/Utilities, Bengaluru — fully structured event schema
+
+### 4. Infrastructure — Docker Containers Running
+![Docker Running](docs/screenshots/04-docker-running.png)
+> Kafka, Zookeeper and Kafka-UI running as Docker containers 
+> consuming 1.08GB RAM across 4 CPUs
 ---
 
 ## 🛠️ Tech Stack
