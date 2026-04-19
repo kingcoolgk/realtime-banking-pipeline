@@ -1,45 +1,44 @@
 """
 storage/s3_writer.py
 ----------------------
-Writes processed DataFrames to the S3 Lakehouse.
-
-Zones:
-  - Raw Zone    : every micro-batch, unfiltered, Parquet, partitioned by event_date + card_type
-  - Curated Zone: DQ-passed records only, deduplicated, partition-optimised for BI queries
+Writes processed DataFrames to local filesystem (demo mode).
+In production: swap local paths for s3a:// paths.
 """
 
 import logging
+import os
 import yaml
 
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
 
 logger = logging.getLogger(__name__)
 
 with open("config/config.yaml") as f:
     CONFIG = yaml.safe_load(f)
 
-S3_BUCKET       = CONFIG["s3"]["bucket"]
-RAW_PREFIX      = CONFIG["s3"]["raw_prefix"]
-CURATED_PREFIX  = CONFIG["s3"]["curated_prefix"]
-DQ_PREFIX       = CONFIG["s3"]["dq_prefix"]
+RAW_PREFIX     = CONFIG["s3"]["raw_prefix"]
+CURATED_PREFIX = CONFIG["s3"]["curated_prefix"]
+DQ_PREFIX      = CONFIG["s3"]["dq_prefix"]
+
+# Create output directories if they don't exist
+os.makedirs(RAW_PREFIX,     exist_ok=True)
+os.makedirs(CURATED_PREFIX, exist_ok=True)
+os.makedirs(DQ_PREFIX,      exist_ok=True)
 
 
 def write_to_raw_zone(df: DataFrame, batch_id: int):
     """
-    Write all incoming records to the raw zone as an audit trail.
-    Partitioned by event_date and card_type for efficient time-range scans.
+    Write all incoming records to local raw zone as Parquet.
+    Partitioned by event_date and card_type.
     """
-    raw_path = f"s3a://{S3_BUCKET}/{RAW_PREFIX}"
-
     try:
         (
             df.write
             .mode("append")
             .partitionBy("event_date", "card_type")
-            .parquet(raw_path)
+            .parquet(RAW_PREFIX)
         )
-        logger.info(f"Batch {batch_id} | Raw zone write SUCCESS → {raw_path}")
+        logger.info(f"Batch {batch_id} | Raw zone write SUCCESS → {RAW_PREFIX}")
     except Exception as e:
         logger.error(f"Batch {batch_id} | Raw zone write FAILED: {e}")
         raise
@@ -47,13 +46,9 @@ def write_to_raw_zone(df: DataFrame, batch_id: int):
 
 def write_to_curated_zone(df: DataFrame, batch_id: int):
     """
-    Write DQ-passed, deduplicated records to the curated zone.
-    Deduplication on transaction_id ensures idempotent micro-batch writes.
-    Partitioned by event_date + category_group for BI query optimisation.
+    Write DQ-passed deduplicated records to local curated zone.
+    Partitioned by event_date and category_group.
     """
-    curated_path = f"s3a://{S3_BUCKET}/{CURATED_PREFIX}"
-
-    # Deduplicate within the batch on transaction_id
     deduped_df = df.dropDuplicates(["transaction_id"])
 
     try:
@@ -61,9 +56,9 @@ def write_to_curated_zone(df: DataFrame, batch_id: int):
             deduped_df.write
             .mode("append")
             .partitionBy("event_date", "category_group")
-            .parquet(curated_path)
+            .parquet(CURATED_PREFIX)
         )
-        logger.info(f"Batch {batch_id} | Curated zone write SUCCESS → {curated_path}")
+        logger.info(f"Batch {batch_id} | Curated zone write SUCCESS → {CURATED_PREFIX}")
     except Exception as e:
         logger.error(f"Batch {batch_id} | Curated zone write FAILED: {e}")
         raise
@@ -71,15 +66,14 @@ def write_to_curated_zone(df: DataFrame, batch_id: int):
 
 def write_dq_report(report: dict, batch_id: int, spark):
     """
-    Persist the DQ report dict as a single-row JSON Parquet for audit/monitoring.
+    Persist DQ report as Parquet for audit trail.
     """
     import json
-    dq_path  = f"s3a://{S3_BUCKET}/{DQ_PREFIX}"
-    rdd      = spark.sparkContext.parallelize([json.dumps(report)])
-    dq_df    = spark.read.json(rdd)
+    rdd   = spark.sparkContext.parallelize([json.dumps(report)])
+    dq_df = spark.read.json(rdd)
 
     try:
-        dq_df.write.mode("append").parquet(dq_path)
-        logger.info(f"Batch {batch_id} | DQ report written → {dq_path}")
+        dq_df.write.mode("append").parquet(DQ_PREFIX)
+        logger.info(f"Batch {batch_id} | DQ report written → {DQ_PREFIX}")
     except Exception as e:
-        logger.warning(f"Batch {batch_id} | DQ report write failed (non-critical): {e}")
+        logger.warning(f"Batch {batch_id} | DQ report write failed: {e}")

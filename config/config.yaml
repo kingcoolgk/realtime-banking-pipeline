@@ -22,10 +22,10 @@ spark:
   watermark_delay: "5 minutes"
 
 s3:
-  bucket: "your-s3-bucket-name"
-  raw_prefix:     "banking/raw"
-  curated_prefix: "banking/curated"
-  dq_prefix:      "banking/dq_reports"
+  bucket: "local"
+  raw_prefix: "output/raw"
+  curated_prefix: "output/curated"
+  dq_prefix: "output/dq_reports"
 
 dq:
   null_rate_threshold: 0.02     # 2% max null rate for critical fields

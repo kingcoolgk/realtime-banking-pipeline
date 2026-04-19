@@ -46,6 +46,7 @@ def create_spark_session() -> SparkSession:
     return (
         SparkSession.builder
         .appName("RealtimeBankingPipeline")
+        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0")
         .config("spark.sql.shuffle.partitions", "4")
         .config("spark.streaming.stopGracefullyOnShutdown", "true")
         .getOrCreate()
